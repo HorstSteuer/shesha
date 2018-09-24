@@ -1,5 +1,5 @@
 ################################################################################################
-				INSTRUCTIONS FOR THE "ZERNIKE ABERRATION" UTILITY OF COMPASS
+                INSTRUCTIONS FOR THE "ZERNIKE ABERRATION" UTILITY OF COMPASS
 ################################################################################################
 
 "Zernike Aberration" adds custom time-varying phase screens to COMPASS simulations. Using a
@@ -11,36 +11,36 @@ introducing custom aberrations.
 
 SETTINGS (OPTIONAL, BUT SHOULD BE SET MANUALLY):
 
-include_zab     if true: aberrations are added to pupil phase screen 			boolean
-file_dir        directory of mat-file containing the aberrations 		 		string
-file_name       name of mat-file containing the time series of aberrations 		string
-num_zpol        Number of Zernike polynomials included in simulation 			integer
-include_path    Defines in which paths the aberrations are taken into account 	integer
-				0 = not included in science and analytic path
-				1 = included only in science path (target)
-				2 = included only in analytic path (WFS)
-				3 = included in science and analytic path
-mat_vers        Version of the mat-file containing the aberrations 				string
-				(possible values: "v4", "v6", "v7", "v7.3")
-step            Time steps (in seconds) of aberrations 							float
-var_name_coeff  Name of matrix containing the coefficients of the aberrations 	string
-var_name_time   Name of matrix containing the time stamps of the aberrations	string
-diam_data       Diameter of the stored aberrations 								float
-pup_diam        Pupil-diameter to which the aberrations are truncated 			float
-				-2.0 = ignore diameters, simulate with not truncated Zernike modes
-				-1.0 = inherit diameter from sim.config.p_tel.diam
-				>0.0 = user specified telescope pupil diameter
+include_zab     if true: aberrations are added to pupil phase screen            boolean
+file_dir        directory of mat-file containing the aberrations                string
+file_name       name of mat-file containing the time series of aberrations      string
+num_zpol        Number of Zernike polynomials included in simulation            integer
+include_path    Defines in which paths the aberrations are taken into account   integer
+                0 = not included in science and analytic path
+                1 = included only in science path (target)
+                2 = included only in analytic path (WFS)
+                3 = included in science and analytic path
+mat_vers        Version of the mat-file containing the aberrations              string
+                (possible values: "v4", "v6", "v7", "v7.3")
+step            Time steps (in seconds) of aberrations                          float
+var_name_coeff  Name of matrix containing the coefficients of the aberrations   string
+var_name_time   Name of matrix containing the time stamps of the aberrations    string
+diam_data       Diameter of the stored aberrations                              float
+pup_diam        Pupil-diameter to which the aberrations are truncated           float
+                -2.0 = ignore diameters, simulate with not truncated Zernike modes
+                -1.0 = inherit diameter from sim.config.p_tel.diam
+                >0.0 = user specified telescope pupil diameter
 
 
 AUTOMATIC GENERATED VARIABLES:
 (should not be set manually by user)
 
-zcube_spup      Cube of Zernike modes for spupil (scientific path/target) 		3D float matrix
-zcube_mpup      Cube of Zernike modes for mpupil (analytic path/WFS) 			3D float matrix
-coeff_series    Matrix containing Zernike coefficients without time stamps 		2D float matrix
-time_series     Matrix containing time stamps (in seconds) of the aberration	1D float matrix
-dec             decimation of iteration time to aberration time steps 			integer
-                = sim.config.p_loop.it_time / step					
+zcube_spup      Cube of Zernike modes for spupil (scientific path/target)       3D float matrix
+zcube_mpup      Cube of Zernike modes for mpupil (analytic path/WFS)            3D float matrix
+coeff_series    Matrix containing Zernike coefficients without time stamps      2D float matrix
+time_series     Matrix containing time stamps (in seconds) of the aberration    1D float matrix
+dec             decimation of iteration time to aberration time steps           integer
+                = sim.config.p_loop.it_time / step                    
 
 ################################################################################################
 
@@ -66,14 +66,14 @@ EXAMPLE FOR CUSTOM MAT-FILE.
 time = [0; 0.002; 0.004; 0.006; 0.008; 0.01; 0.012; 0.014; ...]
 
 coeff = [-22.3,  -6.1,  20.9,  45.9;
-		 -45.3, -11.8,  25.4, -15.9;
-		 -40.2,  26.5, -22.3,   8.5;
-		  32.3,  29.5,  17.9, -27.6;
-		  19.4, -31.3,  15.5,  25.1;
-		 -18.2,  -1.0, -33.7, -24.4;
-		  45.0,  -5.4, -38.1,   0.5;
-		 -46.5,  14.6,  -0.1,  19.9;
-		 ...  ,  ... ,  ... ,  ...]
+         -45.3, -11.8,  25.4, -15.9;
+         -40.2,  26.5, -22.3,   8.5;
+          32.3,  29.5,  17.9, -27.6;
+          19.4, -31.3,  15.5,  25.1;
+         -18.2,  -1.0, -33.7, -24.4;
+          45.0,  -5.4, -38.1,   0.5;
+         -46.5,  14.6,  -0.1,  19.9;
+         ...  ,  ... ,  ... ,  ...]
  
 ################################################################################################
 
@@ -82,45 +82,45 @@ BEHAVIOUR AND REMARKS:
 - If no setting-variables are set, then "Zernike Aberration" will NOT introduce any aberrations
   to simulations.
 - The following setting-variables should be set manually:
-	* include_zab
-	* file_dir
-	* file_name
-	* num_zpol
-	* include_path
-	* mat_vers
-	* var_name_coeff
-	* var_name_time
-	* diam_data
-	* pup_diam
+    * include_zab
+    * file_dir
+    * file_name
+    * num_zpol
+    * include_path
+    * mat_vers
+    * var_name_coeff
+    * var_name_time
+    * diam_data
+    * pup_diam
 - coeff_series and time_series must be sufficiently long for the aspired simulations.
 - coeff_series must be given in nanometer.
 - time_series must be given in seconds.
 - diam_data and pup_diam must be given in meter.
 - This utility only works for
-	* terminal-based COMPASS calls
-	* simulations with fixed and finite number of loop iterations
-	* simulations with ONE call of simulator.loop
+    * terminal-based COMPASS calls
+    * simulations with fixed and finite number of loop iterations
+    * simulations with ONE call of simulator.loop
 - Ordering of matrix containing Zernike coefficients:
-	1. column = Piston
-	2. column = Tip
-	3. column = Tilt
-	4. column = Defocus
-	5. column = oblique astigmatism
-	6. column = vertical astigmatism
-	and so on (IMPORTANT: Noll's convention used)
+    1. column = Piston
+    2. column = Tip
+    3. column = Tilt
+    4. column = Defocus
+    5. column = oblique astigmatism
+    6. column = vertical astigmatism
+    and so on (IMPORTANT: Noll's convention used)
 - Program flow (for dec = 2):
-	Init = initialization of COMPASS
-	x.-P. = x-th propagation of light
-	it_index = iteration index in simulator.loop()
-	p_index = index of Zernike aberration (coeff_series/time_series)
+    Init = initialization of COMPASS
+    x.-P. = x-th propagation of light
+    it_index = iteration index in simulator.loop()
+    p_index = index of Zernike aberration (coeff_series/time_series)
 
-	Flow		Init	1.-P. 	2.-P. 	3.-P. 	4.-P.	5.-P. 	6.-P.
+    Flow        Init    1.-P.   2.-P.   3.-P.   4.-P.   5.-P.   6.-P.
 
-	it_index	 - 		 0 		 1 		 2 		 3 		 4 		 6 
-						 |		 |		 | 		 | 		 | 		 |
-	p_index		 0----------------	  1----------- 	  2-----------
-	
-	phase screen with p_index = 0 is used for first and second propagation,
-	phase screen with p_index = 1 is used for third and fourth propagation,
-	...
+    it_index     -       0       1       2       3       4       5 
+                         |       |       |       |       |       |
+    p_index      0----------------    1-----------    2-----------
+    
+    phase screen with p_index = 0 is used for first and second propagation,
+    phase screen with p_index = 1 is used for third and fourth propagation,
+    ...
 

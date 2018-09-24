@@ -20,4 +20,4 @@ if __name__ == "__main__":
     sim = Simulator(param_file)
 
     sim.init_sim()
-    sim.loop(n = sim.config.p_loop.niter, save_index = 0, phase_index = 1, do_control = False, see_atmos = False)
+    sim.loop(n = sim.config.p_loop.niter, save_index = 0, phase_index = 1)#, do_control = False, see_atmos = False)

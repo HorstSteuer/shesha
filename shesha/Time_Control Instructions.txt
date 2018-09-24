@@ -1,0 +1,117 @@
+################################################################################################
+                   INSTRUCTIONS FOR THE "TIME CONTROL" UTILITY OF COMPASS
+################################################################################################
+
+"Time Control" introduces time oversampling to COMPASS simulations. With this capability it is
+possible to examine e.g. the impact of temporal mirror behavior on the AO loop performance.
+
+"Time Control" establishes a main- and sub-cycle scheme where every sub-cycle corresponds to a
+ordinary COMPASS simulation step. The simulation results of several consecutive sub-cycles are
+combined by "Time Control" to form one cumulated results which are the results of the main-
+cycle. At the end of a main-cycle the cumulated results are provided to AO control algorithms 
+which provide mirror-commands for the following sub-cycles up to the next main-cycle.
+
+################################################################################################
+
+SETTINGS (OPTIONAL, BUT SHOULD BE SET MANUALLY):
+
+os_dec          Decimation from sub- to main-cycle (=main_ctime/sub_ctime)      int
+pyr_dec         Modulation points per sub-cycle                                 int
+elec_noise      Vector of electronic-noise-standard deviations for all wfs      1D float matrix
+noise_seed      Seed for the electronic-noise                                   int
+
+
+AUTOMATIC GENERATED VARIABLES:
+(should not be set manually by user)
+
+main_ctime      Time of one main-cycle/-step                                    float
+sub_ctime       Time of one sub-cycle/-step                                     float
+loop_it         Number of the current sub-cycle                                 int
+wfs_images      Matrix-list holding cumulated wfs-images since last main-cycle  list of 2D float matrices
+ctrl_cmds       Matrix-list holding mirror-commands until next main-cycle       list of 1D float matrices
+                1st row of matrix = cmd for 1st sub-cycle after main-cycle
+                2nd row of matrix = cmd for 2nd sub-cycle after main-cycle
+main_cnt        Number of following sub-cycles until next main-cycle            int
+                0 = this cycle is a main-cycle
+                1 = next cycle is a main-cycle
+bool_pyr        Boolean if one/several pyramid wfs are simulated                boolean
+mod_cx          x-positions of the modulation points (only for pyramid wfs)     2D float matrix
+                every row represents the positions for one wfs
+mod_cy          y-positions of the modulation points (only for pyramid wfs)     2D float matrix
+                every row represents the positions for one wfs
+mod_scale       Vector of scales of the modulation points                       1D float matrix
+flux_per_sub    List of fluxPerSub (entry = fluxPerSub for one wfs)             list of 1D float matrices
+
+halfxy          List of halfxy (entry = halfxy for one wfs)                     list of 2D matrices
+warnings        List containing all warnings raised during initialization       list of strings    
+
+################################################################################################
+
+EXAMPLE FOR PARAM-FILE:
+
+[...]
+p_t_ctrl = conf.Param_t_control()
+p_t_ctrl.set_os_dec(10)
+p_t_ctrl.set_pyr_dec(3)
+p_t_ctrl.set_elec_noise([4])
+p_t_ctrl.set_noise_seed(1234)
+[...]
+p_wfs0.set_noise(0.)
+p_wfs0.set_pyr_npts(p_t_ctrl.pyr_dec) # for pyramid wfs
+[...]
+
+################################################################################################
+
+BEHAVIOUR AND REMARKS:
+
+- REQUIRED python packages:
+    * numpy
+    * time
+- If no setting-variables are set, then "Time Control" will NOT introduce time oversampling.
+- The following setting-variables should be set manually:
+    * os_dec
+    * pyr_dec
+    * elec_noise
+    * noise (wfs parameter)
+    * pyr_npts (wfs parameter, only for pyramid wfs)
+- The following setting-variables may be set manually:
+    * noise_seed
+- The sub-cycle time is equal to COMPASS's ittime. The main-cycle time is equal to os_dec times
+  COMPASS's ittime. With a properly set os_dec the main- and sub-cycle times are set 
+  automatically.
+- For pyramid sensors it is necessary to set pyr_npts (wfs parameter) to pyr_dec for avoiding
+  segmentation faults on the GPU.
+- Photon AND readout noise can be added to the wfs images. The photon noise is controlled via
+  COMPASS's noise and the readout noise via Time Control's elec_noise and noise_seed. 
+  Therefore, the following valid setting-combinations exist: 
+    * no photon and readout noise == noise = -1, elec_noise = 0
+    * photon noise without readout noise == noise = 0, elec_noise = 0
+    * readout noise without photon noise == noise = -1, elec_noise > 0
+    * photon and readout noise == noise = 0, elec_noise > 0
+- The variable wfs_images is a list of matrices, in which every matrix holds the cumulated 
+  image since the last main-cycle of one wavefront sensor.
+- The variable ctrl_cmds is a list of matrices, in which every matrix holds the commands for
+  on mirror until next main-cycle. The matrices are structured as follows:
+    * 1st row of matrix = cmd for 1st sub-cycle after main-cycle
+    * 2nd row of matrix = cmd for 2nd sub-cycle after main-cycle
+    * k-th row of matrix = cmd for k-th sub-cycle after main-cycle
+- The variables flux_per_sub and halfxy are only computed to accelerate the execution of
+  COMPASS. Both variables are used and documented in SHESHA.
+- This utility only works for
+    * terminal-based COMPASS calls
+    * simulations with fixed and finite number of loop iterations
+    * simulations with ONE call of simulator.loop
+- Program flow (for os_dec = 4):
+    it_index = iteration index in simulator.loop()
+    
+                S       S       S       M       S       S       S       M
+    
+    it_index    0       1       2       3       4       5       6       7
+    main_cnt    3       2       1       0       3       2       1       0
+                 |       |       |       |       |       |       |       |
+    actions    cumulate sim results      |      cumulate sim results     |
+                                         |                               |
+                                         ----- cumulate sim results ------
+                                         ---- load wfs images to GPU -----
+                                         --- update modulation points ----
+                                          update "Time Control" variables

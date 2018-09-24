@@ -12,8 +12,6 @@ import time
 import shesha.config as conf
 from shesha.constants import CONST
 
-from shesha.init import wfs_init
-
 #%%
 def calc_dec(main_ctime, sub_ctime, tol = 1e-10):
     """
@@ -98,123 +96,126 @@ def t_ctrl_init(sim):
     :parameters:
         sim: (Simulator) : simulator object (in simulator.py = self)
     """
-    # calc main-cycle time
-    sim.config.p_t_ctrl.set_main_ctime(
-            sim.config.p_t_ctrl.os_dec * sim.config.p_loop.ittime)
-    
-    # set sub-cycle time
-    sim.config.p_t_ctrl.set_sub_ctime(sim.config.p_loop.ittime)
-    
-    # set number of current sub-cycle
-    sim.config.p_t_ctrl.set_loop_it(0)
-    
-    # set number of following sub-cycles
-    sim.config.p_t_ctrl.set_main_cnt(sim.config.p_t_ctrl.os_dec - 1)
-    
-    # init list of matrices containing the cumulated wfs-images
-    sim.config.p_t_ctrl.init_wfs_images( len(sim.config.p_wfss) )
-    
-    #nit list of support-variables (flux_per_sub, halfxy)
-    sim.config.p_t_ctrl.init_flux_per_sub( len(sim.config.p_wfss) )
-    sim.config.p_t_ctrl.init_halfxy( len(sim.config.p_wfss) )
-    
-    # fill list of matrices containing the cumulated wfs-images
-    # fill list of support-variables (flux_per_sub, halfxy)
-    for k in range( len(sim.config.p_wfss) ):
+    # only initialize if os_dec > 1
+    if sim.config.p_t_ctrl.os_dec > 1:
         
-        # calculate flux_per_sub
-        sim.config.p_t_ctrl.set_single_flux_per_sub(idx = k, 
-            content = sim.config.p_wfss[k]._fluxPerSub.T[np.where(sim.config.p_wfss[k]._isvalid > 0)].copy() )
+        # calc main-cycle time
+        sim.config.p_t_ctrl.set_main_ctime(
+                sim.config.p_t_ctrl.os_dec * sim.config.p_loop.ittime)
         
-        # check if wfs is a Shack-Hartmann sensor
-        if sim.config.p_wfss[k].type.decode("utf-8") == "sh":
-            
-            # fill wfs-image-matrix
-            sim.config.p_t_ctrl.set_single_wfs_image( idx = k, 
-                    content = np.zeros(sim.wfs.get_bincube(k).shape, dtype = np.float32) )
-            
-            # fill halfxy
-            sim.config.p_t_ctrl.set_single_halfxy(idx = k,
-                content = sim.config.p_wfss[k]._halfxy )
+        # set sub-cycle time
+        sim.config.p_t_ctrl.set_sub_ctime(sim.config.p_loop.ittime)
         
-        # check if wfs is a pyramid sensor
-        elif sim.config.p_wfss[k].type.decode("utf-8") == "pyrhr":
-            
-            # fill wfs-image-matrix 
-            sim.config.p_t_ctrl.set_single_wfs_image( idx = k, 
-                    content = np.zeros(sim.wfs.get_pyrimg(k).shape, dtype = np.float32) )
-            
-            # fill halfxy
-            sim.config.p_t_ctrl.set_single_halfxy(idx = k,
-                content = np.exp(1j * sim.config.p_wfss[k]._halfxy).astype(np.complex64).T.copy() )
-            
-            # if there is a pyramid sensor, then bool_pyr is set to True
-            sim.config.p_t_ctrl.set_bool_pyr(True)
+        # set number of current sub-cycle
+        sim.config.p_t_ctrl.set_loop_it(0)
         
-        # anything else (this should not happen)
+        # set number of following sub-cycles
+        sim.config.p_t_ctrl.set_main_cnt(sim.config.p_t_ctrl.os_dec - 1)
+        
+        # init list of matrices containing the cumulated wfs-images
+        sim.config.p_t_ctrl.init_wfs_images( len(sim.config.p_wfss) )
+        
+        #nit list of support-variables (flux_per_sub, halfxy)
+        sim.config.p_t_ctrl.init_flux_per_sub( len(sim.config.p_wfss) )
+        sim.config.p_t_ctrl.init_halfxy( len(sim.config.p_wfss) )
+        
+        # fill list of matrices containing the cumulated wfs-images
+        # fill list of support-variables (flux_per_sub, halfxy)
+        for k in range( len(sim.config.p_wfss) ):
+            
+            # calculate flux_per_sub
+            sim.config.p_t_ctrl.set_single_flux_per_sub(idx = k, 
+                content = sim.config.p_wfss[k]._fluxPerSub.T[np.where(sim.config.p_wfss[k]._isvalid > 0)].copy() )
+            
+            # check if wfs is a Shack-Hartmann sensor
+            if sim.config.p_wfss[k].type.decode("utf-8") == "sh":
+                
+                # fill wfs-image-matrix
+                sim.config.p_t_ctrl.set_single_wfs_image( idx = k, 
+                        content = np.zeros(sim.wfs.get_bincube(k).shape, dtype = np.float32) )
+                
+                # fill halfxy
+                sim.config.p_t_ctrl.set_single_halfxy(idx = k,
+                    content = sim.config.p_wfss[k]._halfxy )
+            
+            # check if wfs is a pyramid sensor
+            elif sim.config.p_wfss[k].type.decode("utf-8") == "pyrhr":
+                
+                # fill wfs-image-matrix 
+                sim.config.p_t_ctrl.set_single_wfs_image( idx = k, 
+                        content = np.zeros(sim.wfs.get_pyrimg(k).shape, dtype = np.float32) )
+                
+                # fill halfxy
+                sim.config.p_t_ctrl.set_single_halfxy(idx = k,
+                    content = np.exp(1j * sim.config.p_wfss[k]._halfxy).astype(np.complex64).T.copy() )
+                
+                # if there is a pyramid sensor, then bool_pyr is set to True
+                sim.config.p_t_ctrl.set_bool_pyr(True)
+            
+            # anything else (this should not happen)
+            else:
+                raise TypeError("Oops, something strange happened. It seems" + 
+                                "that one wfs is neither sh nor pyrhr.")
+        
+        # init list of matrices containing the mirror-cmds
+        sim.config.p_t_ctrl.init_ctrl_cmds( len(sim.config.p_dms) )
+        
+        # fill list of matrices containing the mirror-cmds
+        for k in range( len(sim.config.p_dms) ):
+            
+            # fill matrix
+            sim.config.p_t_ctrl.set_single_ctrl_cmd( idx = k, 
+                content = np.zeros((sim.config.p_t_ctrl.os_dec, sim.config.p_dms[k]._ntotact), 
+                                   dtype = np.float32) )
+        
+        # calculate modulation points for pyramid wfs
+        # calc modulation points and their scales
+        [cx, cy, scale] = calc_pyr_mod(
+                p_t_ctrl = sim.config.p_t_ctrl, 
+                p_wfss = sim.config.p_wfss,
+                tel_diam = sim.config.p_tel.diam)
+        
+        # set modulation points
+        sim.config.p_t_ctrl.set_mod_cx(cx)
+        sim.config.p_t_ctrl.set_mod_cy(cy)
+        
+        # set scale of modulation points
+        sim.config.p_t_ctrl.set_mod_scale(scale)
+        
+        # initialize modulation points for every wfs
+        for k in range( len(sim.config.p_wfss) ):
+            
+            # check if current wfs is a Shack Hartmann sensor
+            if sim.config.p_wfss[k].type.decode("utf-8") == "sh":
+                continue
+            
+            # set modulation points in wfs-object
+            sim.wfs.init_arrays(k, sim.config.p_wfss[k]._phasemap, sim.config.p_wfss[k]._hrmap,
+                    sim.config.p_t_ctrl.get_single_halfxy(k), 
+                    sim.config.p_t_ctrl.get_single_flux_per_sub(k),
+                    sim.config.p_wfss[k]._validsubsx, sim.config.p_wfss[k]._validsubsy,
+                    sim.config.p_wfss[k]._istart + 1, sim.config.p_wfss[k]._jstart + 1,
+                    sim.config.p_wfss[k]._binmap, sim.config.p_wfss[k]._ftkernel,
+                    sim.config.p_t_ctrl.mod_cx[k, 0 : sim.config.p_t_ctrl.pyr_dec], 
+                    sim.config.p_t_ctrl.mod_cy[k, 0 : sim.config.p_t_ctrl.pyr_dec], 
+                    sim.config.p_wfss[k]._sincar, sim.config.p_wfss[k]._submask)
+        
+        # set seed for readout noise
+        # set "random" seed (based on unix time; default option)
+        if sim.config.p_t_ctrl.noise_seed == 0:
+            np.random.seed( np.uint32(time.time()) )
+            
+        # set user-defined seed
         else:
-            raise TypeError("Oops, something strange happened. It seems" + 
-                            "that one wfs is neither sh nor pyrhr.")
-    
-    # init list of matrices containing the mirror-cmds
-    sim.config.p_t_ctrl.init_ctrl_cmds( len(sim.config.p_dms) )
-    
-    # fill list of matrices containing the mirror-cmds
-    for k in range( len(sim.config.p_dms) ):
+            np.random.seed(sim.config.p_t_ctrl.noise_seed)
         
-        # fill matrix
-        sim.config.p_t_ctrl.set_single_ctrl_cmd( idx = k, 
-            content = np.zeros((sim.config.p_t_ctrl.os_dec, sim.config.p_dms[k]._ntotact), 
-                               dtype = np.float32) )
-    
-    # calculate modulation points for pyramid wfs
-    # calc modulation points and their scales
-    [cx, cy, scale] = calc_pyr_mod(
-            p_t_ctrl = sim.config.p_t_ctrl, 
-            p_wfss = sim.config.p_wfss,
-            tel_diam = sim.config.p_tel.diam)
-    
-    # set modulation points
-    sim.config.p_t_ctrl.set_mod_cx(cx)
-    sim.config.p_t_ctrl.set_mod_cy(cy)
-    
-    # set scale of modulation points
-    sim.config.p_t_ctrl.set_mod_scale(scale)
-    
-    # initialize modulation points for every wfs
-    for k in range( len(sim.config.p_wfss) ):
-        
-        # check if current wfs is a Shack Hartmann sensor
-        if sim.config.p_wfss[k].type.decode("utf-8") == "sh":
-            continue
-        
-        # set modulation points in wfs-object
-        sim.wfs.init_arrays(k, sim.config.p_wfss[k]._phasemap, sim.config.p_wfss[k]._hrmap,
-                sim.config.p_t_ctrl.get_single_halfxy(k), 
-                sim.config.p_t_ctrl.get_single_flux_per_sub(k),
-                sim.config.p_wfss[k]._validsubsx, sim.config.p_wfss[k]._validsubsy,
-                sim.config.p_wfss[k]._istart + 1, sim.config.p_wfss[k]._jstart + 1,
-                sim.config.p_wfss[k]._binmap, sim.config.p_wfss[k]._ftkernel,
-                sim.config.p_t_ctrl.mod_cx[k, 0 : sim.config.p_t_ctrl.pyr_dec], 
-                sim.config.p_t_ctrl.mod_cy[k, 0 : sim.config.p_t_ctrl.pyr_dec], 
-                sim.config.p_wfss[k]._sincar, sim.config.p_wfss[k]._submask)
-    
-    # set seed for readout noise
-    # set "random" seed (based on unix time; default option)
-    if sim.config.p_t_ctrl.noise_seed == 0:
-        np.random.seed( np.uint32(time.time()) )
-        
-    # set user-defined seed
-    else:
-        np.random.seed(sim.config.p_t_ctrl.noise_seed)
-    
     # print status of time control
     print()
     print("*-------------------------------")
     print("TIME CONTROL")
     
-    # if os_dec = 1 then there is no time oversampling
-    if sim.config.p_t_ctrl.os_dec == 1:
+    # if os_dec <= 1 then there is no time oversampling
+    if sim.config.p_t_ctrl.os_dec <= 1:
         print("status: disabled")
     
     # there is time oversampling

@@ -50,7 +50,7 @@ class Param_t_control:
                         halfxy for one wfs; list of np.ndarrays[dtype=np.float32])
         warnings        List containing all warnings raised during initialization
         """
-        self.__os_dec = 0
+        self.__os_dec = 1
         self.__main_ctime = 0.0
         self.__sub_ctime = 0.0
         self.__loop_it = 0

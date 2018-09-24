@@ -1,0 +1,111 @@
+################################################################################################
+                INSTRUCTIONS FOR THE "USER DEFINDED CONTROL" UTILITY OF COMPASS
+################################################################################################
+
+"User Definded Control" introduces 
+
+################################################################################################
+
+SETTINGS (OPTIONAL, BUT SHOULD BE SET MANUALLY):
+
+use_udc         if true: ud control law resp. controller is used                bool
+udc_file_dir    Directory of the script containing the ud controller            string
+udc_file_name   File-name of the script containing the ud controller            string
+udc_session     Session used to execute the ud controller                       string
+                "python" = Python session
+                "new matlab" = new MATLAB session
+                "find matlab" = find shared MATLAB session
+                arbitrary = shared MATLAB session with specified name
+cmd_apply       if true: calculated mirror cmds are applied in simulation       bool
+param           Dictionary containing all relevant "sim configs" for MATLAB     dictionary
+func_param      COMPASS commands providing inputs for MATLAB ud controller      list of strings
+
+
+AUTOMATIC GENERATED VARIABLES:
+(should not be set manually by user)
+
+mat_output      Output of the MATLAB function implementing the ud controller    io.StringIO
+engine          MATLAB engine used to interact with MATLAB                      engine object
+udc_mod         Loaded python module containing ud controller function          module
+func_call       Python call of the ud controller                                string
+
+
+USER DEFINDED VARIABLES:
+(must be specified by user)
+
+buffer          Variable intended to store infos between ud controller runs     specified by user
+
+
+################################################################################################
+
+EXAMPLE FOR PARAM-FILE:
+
+[...]
+p_ud_ctrl = conf.Param_ud_control()
+p_ud_ctrl.set_use_udc(True)
+p_ud_ctrl.set_udc_file_dir("/home/smith/Documents/COMPASS_Sim/vibrations/")
+p_ud_ctrl.set_udc_file_name("controller")
+p_ud_ctrl.set_udc_session("find matlab")
+p_ud_ctrl.set_cmd_apply(True)
+p_ud_ctrl.set_func_param(["sim.config.p_t_ctrl.loop_it"]) # only for MATLAB ud controller
+p_ud_ctrl.set_param({"delay": 15})
+[...]
+p_controller0.set_delay(0)
+[...]
+
+################################################################################################
+
+BEHAVIOUR AND REMARKS:
+
+- REQUIRED python packages:
+    * matlab.engine
+    * io
+    * sys
+    * os
+    * numpy
+    * time
+- ud controller implemented as a MATLAB function can only be used, if MATLAB is installed on the
+  computer running COMPASS.
+- If no setting-variables are set, then User Definded Control will NOT introduce a user 
+  defined control law.
+- The following setting-variables should be set manually:
+    * use_udc
+	* udc_file_dir
+	* udc_file_name
+	* udc_session
+	* cmd_apply
+	* param
+	* func_param (only for MATLAB ud controller)
+	* buffer
+- The following setting-variables may be set manually:
+    * buffer
+- A Python ud controller gets the complete "sim" object and can retrieve all data from it.
+- The user has to provide all necessary data to a MATLAB ud controller via "func_param". 
+  "func_param" consists out of several COMPASS commands that return the data required to 
+  evaluate the ud controller. The first command corresponds to the first MATLAB function input, 
+  the second command to the second input and so on.
+- User Definded Control can use Python to execute the ud controller (udc_session = "python"). 
+  Alternatively User Definded Control can 
+    * start a new MATLAB session (udc_session = "new matlab")
+	* connect to the single running shared MATLAB session (udc_session = "find matlab")
+	* conneto to a shared MATLAB session with specified name (udc_session = session name)
+  to execute the controller.
+- The variable "param" is a Python dictionary storing several simulation configurations. It 
+  provides the MATLAB ud controller with a structure storing the same simulation configurations. 
+  By default it provides:
+    * "it_time" = sim.config.p_loop.ittime
+	* "t_dec" = sim.config.p_t_ctrl.os_dec
+	* "n_act" = [x._ntotact for x in sim.config.p_dms]
+  The param dictionary can be manually extended (see: p_ud_ctrl.set_param({"delay": 15})).
+- If a MATLAB ud controller is used, a log file is created in the same directory as the 
+  controller. This log file contains all messages MATLAB outputed during the simulation.
+- The variable "buffer" can be used to store data between the runs of a Python ud controller. 
+  Users need to 
+
+
+- buffer 
+- delay
+- Zeit
+
+################################################################################################
+

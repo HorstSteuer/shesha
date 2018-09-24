@@ -30,6 +30,8 @@ from shesha.sutra_bind.wrap import naga_context, Sensors, Dms, Rtc, Atmos, Teles
 import shesha.util.mat_log as mat_log
 import shesha.util.z_aberration as z_aber
 import shesha.util.t_control as t_ctrl
+import shesha.util.ud_control as ud_ctrl
+import shesha.config as conf
 import numpy as np
 
 
@@ -187,6 +189,8 @@ class Simulator:
         
         self._z_aberration_init()
         
+        self._ud_control_init()
+        
         self._mat_logging_init()
 
     def _tel_init(self, r0: float, ittime: float) -> None:
@@ -295,6 +299,12 @@ class Simulator:
         Initializes the Time Control utility (enabling oversampling)
         """
         t_ctrl.t_ctrl_init(self)
+    
+    def _ud_control_init(self):
+        """
+        Initializes the User Defined Control utility
+        """
+        ud_ctrl.ud_ctrl_init(self)
 
     def next(self, *, move_atmos: bool=True, see_atmos: bool=True, nControl: int=0,
              tar_trace: Iterable[int]=None, wfs_trace: Iterable[int]=None,
@@ -350,14 +360,9 @@ class Simulator:
                 if not self.config.p_wfss[w].openloop and self.dms is not None:
                     self.wfs.raytrace(w, b"dm", dms=self.dms)
                 self.wfs.comp_img(w)
-        if do_control:
+        if do_control and self.config.p_t_ctrl.os_dec <= 1 and not self.config.p_ud_ctrl.use_udc:
             self.rtc.do_centroids(nControl)
             self.rtc.do_control(nControl)
-            # Test
-            # self.rtc.set_com(0,np.random.randn(self.config.p_dms[0]._ntotact + self.config.p_dms[1]._ntotact,1).astype('float32').ravel())
-            # cmd_mat = np.zeros((self.config.p_dms[0]._ntotact + self.config.p_dms[1]._ntotact,1), dtype = 'float32').ravel()
-            # cmd_mat[self.iter] = 1
-            # self.rtc.set_com(0,cmd_mat)
             self.rtc.do_clipping(0, -1e5, 1e5)
             if apply_control:
                 self.rtc.apply_control(nControl, self.dms)
@@ -416,8 +421,14 @@ class Simulator:
         t1 = time.time()
         print(" loop execution time:", t1 - t0, "  (", n, "iterations), ", (t1 - t0) / n,
               "(mean)  ", n / (t1 - t0), "Hz")
+        
+        self.end_addition()
     
     def loop_addition(self, it_index):
+        """
+        Additional code executed after every simulation step
+        """
+        
         # update of Time control
         if self.config.p_t_ctrl.os_dec > 1:
             
@@ -430,12 +441,21 @@ class Simulator:
             # set modulation points for next sub-cycle
             t_ctrl.update_pyr_mod(self)
             
-            # update loop_it and main_cnt after for next sub-cycle
-            t_ctrl.update_idx(self)
+        # update of User Defined Control
+        if self.config.p_ud_ctrl.use_udc:
             
+            # evaluate mirror commands
+            ud_ctrl.eval_ud_ctrl(self)
+            
+            # apply mirror commands
+            ud_ctrl.update_mirror_shape(self)
+            
+        # update loop_it and main_cnt after for next sub-cycle
+        t_ctrl.update_idx(self)
         
         # update of Zernike aberration
         if self.config.p_z_ab.include_zab and (it_index % self.config.p_z_ab.dec == 0):
+            
             # calculate and set phase-screen for spupil
             if (self.config.p_z_ab.include_path == 1) or (self.config.p_z_ab.include_path == 3):
                 self.tel.set_phase_ab_M1( z_aber.calc_phase_screen(
@@ -464,6 +484,18 @@ class Simulator:
             
             self.config.p_matlog.save_index += 1
         
+    def end_addition(self):
+        """
+        Additional code executed after simulation
+        """
+        # write log-file for MATLAB ud controller
+        ud_ctrl.write_log(self)
+        
+        # disconnect Python from MATLAB
+        if self.config.p_ud_ctrl.engine != None:
+            
+            self.config.p_ud_ctrl.engine.rmpath(self.config.p_ud_ctrl.udc_file_dir, nargout=0)
+            self.config.p_ud_ctrl.engine.quit()
         
 
 def load_config_from_file(sim_class, filepath: str) -> None:
@@ -511,6 +543,16 @@ def load_config_from_file(sim_class, filepath: str) -> None:
         sim_class.config.p_centroiders = None
     if not hasattr(sim_class.config, 'p_controllers'):
         sim_class.config.p_controllers = None
+    
+    # Set missing custom config attributes to default values
+    if not hasattr(sim_class.config, 'p_t_ctrl'):
+        sim_class.config.p_t_ctrl = conf.Param_t_control()
+    if not hasattr(sim_class.config, 'p_matlog'):
+        sim_class.config.p_matlog = conf.Param_mat_logger()
+    if not hasattr(sim_class.config, 'p_z_ab'):
+        sim_class.config.p_z_ab = conf.Param_z_aberration()
+    if not hasattr(sim_class.config, 'p_ud_ctrl'):
+        sim_class.config.p_ud_ctrl = conf.Param_ud_control()
 
     if not hasattr(sim_class.config, 'simul_name'):
         sim_class.config.simul_name = None
